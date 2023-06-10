@@ -65,19 +65,15 @@ print(len(X_train))
 X_test = X_test.reshape(-1, 3)  # Aplanar las imágenes en un vector unidimensional (num_imagenes * 10000, 3)
 print(len(X_test))
 
-print("Empiezo Scaler")
-# Normalizar los datos de entrenamiento y prueba
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
-print("Termino Scaler")
+X_train = X_train.astype(np.float16) / 255.0
+X_test = X_test.astype(np.float16) / 255.0
 
 print(X_train[0])
-print(X_train[0])
+print(X_test[0])
 
-def k_means_test(X):
-    kmeans = KMeans(n_clusters=38, max_iter=100)
-    kmeans.fit(X)
+def k_means_test(X_train):
+    kmeans = KMeans(n_clusters=38, max_iter=2)
+    kmeans.fit(X_train)
 
     # Obtener las etiquetas de cluster asignadas a cada punto de datos
     labels = kmeans.labels_
@@ -101,4 +97,5 @@ def spectral_test(X):
     # Imprimir las etiquetas de cluster
     print("Etiquetas de cluster:", labels)
 
+k_means_test(X_train)
 #spectral_test(X)

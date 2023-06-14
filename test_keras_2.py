@@ -1,9 +1,8 @@
 import numpy as np
 import os
-from sklearn.cluster import MiniBatchKMeans
-from sklearn.cluster import KMeans
-from sklearn.cluster import SpectralClustering
-from sklearn.preprocessing import StandardScaler
+import tensorflow as tf
+from tensorflow.keras import layers
+from tensorflow.keras.models import Model
 from PIL import Image
 
 # Directorio que contiene las imágenes
@@ -22,10 +21,9 @@ for root, dirs, files in os.walk(image_directory):
         subdir = os.path.join(root, directory)
         # Obtener la lista de nombres de archivo de las imágenes en la subcarpeta
         image_files = os.listdir(subdir)
-        #print(len(image_files))
         # Procesar las imágenes en lotes
         total = len(image_files)
-        porcentaje = 80
+        porcentaje = 2
         entrenamiento = int((total/100)*porcentaje)
         prueba = int(total - entrenamiento)
         for i in range(0, len(image_files), batch_size):
@@ -58,44 +56,38 @@ for root, dirs, files in os.walk(image_directory):
 X_train = np.concatenate(images)
 X_test = np.concatenate(images_test)
 
-# Aplanar X
-X_train = X_train.reshape(-1, 3)  # Aplanar las imágenes en un vector unidimensional (num_imagenes * 10000, 3)
-print(len(X_train))
+# Aplanar las matrices de imágenes a un formato bidimensional
+X_train = X_train.reshape(X_train.shape[0], -1)
+X_test = X_test.reshape(X_test.shape[0], -1)
 
-X_test = X_test.reshape(-1, 3)  # Aplanar las imágenes en un vector unidimensional (num_imagenes * 10000, 3)
-print(len(X_test))
+# Convertir las imágenes a tensores
+X_train = tf.convert_to_tensor(X_train, dtype=tf.float32)
+X_test = tf.convert_to_tensor(X_test, dtype=tf.float32)
 
-X_train = X_train.astype(np.float32) / 255.0
-X_test = X_test.astype(np.float132) / 255.0
+# Definir la función de pérdida para el clustering K-Means
+def kmeans_loss(y_true, y_pred):
+    if y_true.dtype != tf.float32:
+        y_true = tf.cast(y_true, tf.float32)
+    if y_pred.dtype != tf.float32:
+        y_pred = tf.cast(y_pred, tf.float32)
+    return tf.reduce_mean(tf.square(y_pred - y_true))
 
-print(X_train[0])
-print(X_test[0])
+# Definir el modelo K-Means
+input_shape = X_train.shape[1:]
+model_input = layers.Input(shape=input_shape)
+kmeans_output = layers.Dense(units=38, activation='softmax')(model_input)
 
-def k_means_test(X_train):
-    kmeans = KMeans(n_clusters=38, max_iter=8)
-    kmeans.fit(X_train)
+# Compilar el modelo
+model = Model(inputs=model_input, outputs=kmeans_output)
+model.compile(optimizer='adam', loss='categorical_crossentropy')
 
-    # Obtener las etiquetas de cluster asignadas a cada punto de datos
-    labels = kmeans.labels_
+# Entrenar el modelo utilizando las imágenes de entrenamiento
+model.fit(X_train, X_train, epochs=10, batch_size=batch_size)
 
-    # Obtener las coordenadas de los centroides
-    centroids = kmeans.cluster_centers_
+# Obtener las etiquetas de clúster asignadas a los puntos de datos
+labels_pred_train = model.predict(X_train).argmax(axis=1)
+labels_pred_test = model.predict(X_test).argmax(axis=1)
 
-    # Imprimir las etiquetas de cluster y los centroides
-    print("Etiquetas de cluster:", labels)
-    print("Coordenadas de los centroides:", centroids)
+# Imprimir las etiquetas de clúster
+print(labels_pred_train)
 
-def spectral_test(X):
-
-    # Utilizar Spectral Clustering
-    spectral_clustering = SpectralClustering(n_clusters=38, affinity='nearest_neighbors', n_init=8)
-    spectral_clustering.fit(X)
-
-    # Obtener las etiquetas de cluster asignadas a cada punto de datos
-    labels = spectral_clustering.labels_
-
-    # Imprimir las etiquetas de cluster
-    print("Etiquetas de cluster:", labels)
-
-k_means_test(X_train)
-#spectral_test(X)

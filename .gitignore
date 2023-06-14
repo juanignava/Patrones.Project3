@@ -9,6 +9,8 @@
 
 images/*
 
+runs/*
+
 # KDE directory preferences
 .directory
 
